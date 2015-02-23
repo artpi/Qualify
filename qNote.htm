@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en-EN">
+<head>
+<title>Qualitative note</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+<!-- The main Annotator script -->
+<script src="js/annotator/annotator.min.js"></script>
+<link rel="stylesheet" type="text/css" href="js/annotator/annotator.min.css">
+<script src="js/annotator/annotator.tags.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="css/style.css">
+
+<script src="js/utils.js"></script>
+<script src="js/qNoteAnnotator.js"></script>
+<script src="js/qNote.js"></script>
+
+
+<style>
+	body {margin:0px 100px;}
+</style>
+
+<script>
+
+var 
+	router,
+	annotatorInstance = null,
+	webClientUrl = 'https://evernote.com/';
+
+$(document).ajaxError(function( event, request, settings ) {
+	if(request.status === 401) {
+		document.location = './login.htm';
+	}
+});
+
+$(document).ready(function(){
+	$(document).ajaxStart(function(){
+	  $('#loading_indicator').html("<div class='loading'>Loading...</div>");
+	});
+	$(document).ajaxStop(function(){
+	  $('#loading_indicator').html("<div class='loaded'>Data loaded</div>");
+	});
+	
+	
+	$("<li data-guid='-'><a>All tags</a></li>").appendTo($("#menu .tag_list")).on('click',function() {
+		qNote.noteQuery.tag = '';
+		qNote.listNotes();
+	});
+		
+	$('<a class="list-group-item" data-guid="-">All tags</a>').appendTo($("#choose .tag_list")).on('click',function() {
+		qNote.noteQuery.tag = '';
+		qNote.listNotes();
+	});
+	
+	$("<li data-guid='-'><a>All notebooks</a></li>").appendTo($("#menu .notebook_list")).on('click',function() {
+		qNote.noteQuery.notebook = '';
+		qNote.listNotes();
+	});
+		
+	$('<a class="list-group-item" data-guid="-">All notebooks</a>').appendTo($("#choose .notebook_list")).on('click',function() {
+		qNote.noteQuery.notebook = '';
+		qNote.listNotes();
+	});
+	ui.clearNotes();
+	
+	qNote.listNotebooks();
+	qNote.listTags();
+	qNote.listCodes();
+	
+	router = new Router();
+	router.bind('n', function(val) {
+		qNote.showNote(val);
+		$('#choose>.panel-body').hide();
+
+	});
+	
+	$('#choose>.panel-heading').on('click', function() {
+		$('#choose>.panel-body').toggle();
+	});
+	
+	if(window.location.hash.split('#')[1]) {
+		router.parse(window.location.hash.split('#')[1]);
+	}
+	
+});
+
+
+var ui = {
+	search: function(obj) {
+		var term = $(obj).find('input').val();
+		$('#choose>.panel-body').show();
+		if(term.indexOf('tag:')!==-1 || term.indexOf('notebook:')!==-1) {
+			qNote.noteQuery.notebook = '';
+			qNote.noteQuery.tag = '';
+		}
+		qNote.noteQuery.words = term;
+		qNote.listNotes();
+		
+		return false;
+	},
+	addNotebook: function(val) {
+		$("<li data-guid='"+val.guid+"'><a>"+val.name+"</a></li>")
+		.appendTo($("#menu .notebook_list"))
+		.on('click',function() {
+			$('#choose>.panel-body').show();
+			qNote.noteQuery.notebook = val.guid;
+			qNote.listNotes();
+		});
+		
+		$('<a class="list-group-item" data-guid="'+val.guid+'">' +val.name+ '</a>')
+		.appendTo($("#choose .notebook_list"))
+		.on('click',function() {
+			qNote.noteQuery.notebook = val.guid;
+			qNote.listNotes();
+		});
+		
+	},
+	clearNotes: function() {
+		$("#choose .note_list").empty().html("<div class='loading'></div>");
+		
+		var setActive = function(dom, query ) {
+			if(query === '') {
+				query = '-';
+			}
+			
+			$(dom).removeClass('active ');
+			$(dom+"[data-guid="+query+"]").addClass('active');
+		}
+
+		setActive("#choose .notebook_list>a", qNote.noteQuery.notebook);
+		setActive("#choose .tag_list>a", qNote.noteQuery.tag);
+		setActive("#menu .notebook_list>li", qNote.noteQuery.notebook);
+		setActive("#menu .tag_list>li", qNote.noteQuery.tag);
+		
+	},
+	addNote: function(val) {
+		$('<a class="list-group-item"><h4 class="list-group-item-heading">' + val.title + '</h4>' + 
+		'<p class="list-group-item-text"></p></a>')
+		.appendTo($("#choose .note_list"))
+		.on('click',function() {
+			router.go({n: val.guid});
+		});
+	},
+	addGrid: function() {
+		var el=$('<div class="row">'+
+		'<div class="alert alert-dismissable alert-info">'+
+		'<button type="button" class="close" data-dismiss="alert">×</button>'+
+		'<br>'+
+		'<div class="panel">'+
+		'	<div class="panel-heading">'+
+		'		<h3 class="panel-title">Annotations tagged `<i></i>`</h3>'+
+		'	</div>'+
+		'	<div class="panel-body">'+
+		'<table class="table table-striped table-hover ">'+
+		'  <thead>'+
+		'    <tr>'+
+		'      <th>Containing text</th>'+
+		'      <th>Quote</th>'+
+		'      <th>Note</th>'+
+		'      <th>Tags</th>'+
+		'    </tr>'+
+		'  </thead>'+
+		'  <tbody>'+
+		'  </tbody>'+
+		'</table> '+
+		'	</div>'+
+		'</div>'+
+		'</div>'+
+		'</div>').insertAfter($("#menu"));
+		return el;
+	},
+	highlightColor: {
+		highlightColorPatterns: [
+			[255,0,10],
+			[10,255,0],
+			[0,255,255],
+			[0,0,255],
+			[255,0,255],
+			[120,120,0],
+			[0,120,0],
+			[0,0,120]
+		],
+		highlightColorMap: [],
+		highlightColorCurr: 0,
+		get: function (tag, opacity) {
+			if(!this.highlightColorMap[tag]) {
+				this.highlightColorMap[tag] = this.highlightColorPatterns[this.highlightColorCurr];
+				this.highlightColorCurr++;
+				if(this.highlightColorCurr >= this.highlightColorPatterns.length) {
+					this.highlightColorCurr = 0;
+				}
+			}
+			return 'rgba(' + this.highlightColorMap[tag][0] + "," + this.highlightColorMap[tag][1] + "," +this.highlightColorMap[tag][2] + ', ' + opacity + ')';
+			
+		} 
+	}
+
+}
+
+
+</script>
+</head>
+<body>
+
+<div class="navbar navbar-default" id='menu'>
+  <div class="navbar-header">
+    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <a class="navbar-brand">Qualify</a>
+  </div>
+  <div class="navbar-collapse collapse navbar-responsive-collapse">
+    <ul class="nav navbar-nav">
+	
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Notebooks <b class="caret"></b></a>
+        <ul class="dropdown-menu notebook_list">
+
+        </ul>
+      </li>
+	  
+	  <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tags <b class="caret"></b></a>
+        <ul class="dropdown-menu tag_list">
+
+        </ul>
+      </li>
+	  
+	  <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Explore Code <b class="caret"></b></a>
+        <ul class="dropdown-menu code_list">
+
+        </ul>
+      </li>
+	  
+	  
+    </ul>
+    <form class="navbar-form navbar-left" onsubmit="return ui.search(this);">
+      <input type="text" class="form-control col-lg-8" placeholder="Search notes...">
+    </form>
+    <ul class="nav navbar-nav navbar-right">
+      <li><a href='./support' target='_blank'>Feedback</a></li>
+	
+	  <li><a id='loading_indicator'>Loading</a></li>
+	  
+    </ul>
+  </div>
+</div>
+
+
+
+
+
+<div class='row'>
+<div class="panel panel-primary" id='choose'>
+	<div class="panel-heading">
+		<h3 class="panel-title">Step 1. Choose a note</h3>
+	</div>
+	<div class="panel-body">
+			
+		<div class='col-md-3'>
+			<h2>Notebooks</h2>
+					<div class="list-group notebook_list">
+
+					</div>
+
+		</div>
+		
+		<div class='col-md-3'>
+			<h2>Tags</h2>
+
+					<div class="list-group tag_list">
+
+					</div>
+
+		</div>
+		
+		<div class='col-md-6'>
+			<h2>Notes</h2>
+					<div class="list-group note_list" height='600px;overflow-y:scroll'>
+
+					</div>
+
+		</div>
+
+	</div>
+</div>
+</div>
+
+
+
+
+
+
+<div class='row'>
+		<div class="panel panel-primary" id='note_panel'>
+			<div class="panel-heading">
+				<h3 class="panel-title">Step 2. Mark note</h3>
+			</div>
+			<div class="panel-body">
+				<div id='note'>
+					<div class='loading'></div>
+				</div>
+			</div>
+		</div>
+</div>
+
+
+
+
+
+
+
+</body>
+</html>

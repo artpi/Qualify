@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Sign in to Qualify</title>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<script src="js/login.js"></script>
+
+    <!-- Custom styles for this template -->
+<link rel="stylesheet" type="text/css" href="css/style.css">
+
+
+  </head>
+
+  <body>
+  
+<div class="navbar navbar-default" id='menu'>
+  <div class="navbar-header">
+    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <a class="navbar-brand">Qualify</a>
+  </div>
+</div>
+
+
+    <div class="container" id='login'>
+	  
+      <form class="form-signin" role="form">
+        <h2 class="form-signin-heading">Please sign in for awesomeness</h2>
+		<div class='comm'></div>
+        <input type="email" class="form-control" placeholder="Email address" required autofocus>
+        <input type="password" class="form-control" placeholder="Password" required>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+		<button type="button" class="btn btn-sm btn-block" onclick='register();'>Don`t have account yet? Register!</button>
+      </form>
+    </div>
+	
+    <div class="container" id='register' style='display:none'>
+	
+      <form class="form-signin" role="form">
+        <h2 class="form-signin-heading">We'll be done in a second</h2>
+		<div class='comm'></div>
+        <input name='email1' type="email" class="form-control" placeholder="Email address" required autofocus>
+		<input name='email2' type="email" class="form-control" placeholder="Please repeat email" required>
+        <input name='pass1' type="password" class="form-control" placeholder="Password" required>
+		<input name='pass2' type="password" class="form-control" placeholder="Please repeat pasword" required>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
+      </form>
+    </div>
+	
+	
+	
+  </body>
+</html>
